@@ -1,7 +1,6 @@
-package com.jk.finice.apigateway.config;
+package com.jk.apigateway.config;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
@@ -11,7 +10,7 @@ import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 import java.util.Arrays;
 import java.util.List;
 
-import static com.jk.finice.commonlibrary.constants.AppConstants.*;
+import static com.jk.commonlibrary.constants.AppConstants.*;
 /**
  * Controls which external domains (origins) can make requests to our API from web browsers,
  * preventing unauthorized cross-origin requests while allowing legitimate ones.

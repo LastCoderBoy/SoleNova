@@ -1,10 +1,10 @@
-package com.jk.finice.apigateway.exception;
+package com.jk.apigateway.exception;
 
-import com.jk.finice.commonlibrary.dto.ApiResponse;
-import com.jk.finice.commonlibrary.exception.InvalidTokenException;
-import com.jk.finice.commonlibrary.exception.ResourceNotFoundException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jk.commonlibrary.dto.ApiResponse;
+import com.jk.commonlibrary.exception.InvalidTokenException;
+import com.jk.commonlibrary.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.web.reactive.error.ErrorWebExceptionHandler;
@@ -22,7 +22,6 @@ import reactor.core.publisher.Mono;
  * Handles gateway-level errors (routing failures, circuit breaker, etc.)
  *
  * @author LastCoderBoy
- * @since 2026-01-22
  */
 @Component
 @Order(-1)

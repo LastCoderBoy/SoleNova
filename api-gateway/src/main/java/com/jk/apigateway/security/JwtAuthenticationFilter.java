@@ -1,8 +1,9 @@
-package com.jk.finice.apigateway.security;
+package com.jk.apigateway.security;
 
-import com.jk.finice.commonlibrary.exception.InvalidTokenException;
-import com.jk.finice.commonlibrary.utils.TokenUtils;
-import com.jk.finice.apigateway.redis.RedisService;
+import com.jk.apigateway.dto.JwtClaimsPayload;
+import com.jk.apigateway.redis.RedisService;
+import com.jk.commonlibrary.exception.InvalidTokenException;
+import com.jk.commonlibrary.utils.TokenUtils;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -18,24 +19,21 @@ import org.springframework.util.PathMatcher;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
-import static com.jk.finice.commonlibrary.constants.AppConstants.*;
+import static com.jk.commonlibrary.constants.AppConstants.*;
 
 @Component
 @Slf4j
 public class JwtAuthenticationFilter extends AbstractGatewayFilterFactory<JwtAuthenticationFilter.Config> {
 
     private final PathMatcher pathMatcher;
-    private final JwtProvider jwtProvider;
+    private final JwtTokenProcessor jwtTokenProcessor;
     private final RedisService redisService;
     @Autowired
-    public JwtAuthenticationFilter(JwtProvider jwtProvider, RedisService redisService) {
+    public JwtAuthenticationFilter(JwtTokenProcessor jwtTokenProcessor, RedisService redisService) {
         super(Config.class);
-        this.jwtProvider = jwtProvider;
+        this.jwtTokenProcessor = jwtTokenProcessor;
         this.redisService = redisService;
         this.pathMatcher = new AntPathMatcher();
     }
@@ -63,10 +61,16 @@ public class JwtAuthenticationFilter extends AbstractGatewayFilterFactory<JwtAut
             try {
                 String token = TokenUtils.validateAndExtractToken(authHeader);
 
-                if (!jwtProvider.validateToken(token)) {
-                    log.warn("[JWT-AUTH-FILTER] Invalid JWT token for path: {}", path);
+                // Validate token & extract claims
+                Optional<JwtClaimsPayload> claimsOpt = jwtTokenProcessor.validateAndExtractClaims(token);
+                if (claimsOpt.isEmpty()) {
                     return onError(exchange, "Token has expired or has invalid structure", HttpStatus.UNAUTHORIZED);
                 }
+                JwtClaimsPayload claims = claimsOpt.get();
+
+                String userId   = claims.userId() != null ? String.valueOf(claims.userId()) : "";
+                String username = claims.username();
+                List<String> userRoles = claims.roles();
 
                 // Check if token is blacklisted in Redis Cache
                 return redisService.isTokenBlacklisted(token)
@@ -75,11 +79,6 @@ public class JwtAuthenticationFilter extends AbstractGatewayFilterFactory<JwtAut
                                 log.warn("[JWT-AUTH-FILTER] Blacklisted token attempted for: {}", path);
                                 return onError(exchange, "Token has been revoked", HttpStatus.UNAUTHORIZED);
                             }
-
-                            // Extract user details
-                            String userId = String.valueOf(jwtProvider.getUserIdFromToken(token));
-                            String username = jwtProvider.getUsernameFromJWT(token);
-                            List<String> userRoles = jwtProvider.getRolesFromToken(token);
 
                             // Check required roles
                             if (!config.getRequiredRoles().isEmpty()) {
@@ -98,12 +97,16 @@ public class JwtAuthenticationFilter extends AbstractGatewayFilterFactory<JwtAut
 
                             // Add user context headers
                             ServerHttpRequest modifiedRequest = request.mutate()
-                                    .header(USER_ID_HEADER, userId != null ? userId : "")
+                                    .header(USER_ID_HEADER, userId)
                                     .header(USERNAME_HEADER, username)
                                     .header(USER_ROLES_HEADER, String.join(",", userRoles))
                                     .build();
 
                             return chain.filter(exchange.mutate().request(modifiedRequest).build());
+                        })
+                        .onErrorResume(e -> {
+                            log.error("[JWT-AUTH-FILTER] Unexpected reactive error: {}", e.getMessage(), e);
+                            return onError(exchange, "Internal server error", HttpStatus.INTERNAL_SERVER_ERROR);
                         });
 
             } catch (InvalidTokenException e) {

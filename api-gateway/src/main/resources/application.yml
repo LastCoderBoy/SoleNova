@@ -1,0 +1,171 @@
+# ========================================
+# API GATEWAY CONFIGURATION
+# ========================================
+spring:
+  application:
+    name: api-gateway
+
+  # ========================================
+  # REDIS CONFIGURATION (Reactive)
+  # ========================================
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
+      database: 0
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 2
+          max-wait: -1ms
+
+  # ========================================
+  # CLOUD GATEWAY CONFIGURATION
+  # ========================================
+  cloud:
+    gateway:
+      # HTTP Client Configuration
+      httpclient:
+        connect-timeout: 5000
+        response-timeout: 10s
+
+# ========================================
+# APP CUSTOM CONFIGURATION
+# ========================================
+app:
+  cors:
+    allowed-origins:
+      - "http://localhost:3000"
+      - "http://localhost:4200"
+      - "http://localhost:5173"
+    allowed-methods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - OPTIONS
+      - PATCH
+    allow-credentials: true
+    max-age: 3600
+
+server:
+  port: ${GATEWAY_PORT:8080}
+
+# ========================================
+# JWT CONFIGURATION
+# ========================================
+jwt:
+  secret: ${JWT_SECRET}
+
+# ========================================
+# EUREKA CLIENT CONFIGURATION
+# ========================================
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+    fetch-registry: true
+    register-with-eureka: true
+
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
+    metadata-map:
+      zone: primary
+      version: 1.0.0
+
+# ========================================
+# SPRINGDOC / SWAGGER CONFIGURATION
+# ========================================
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    # Aggregated service documentation
+    urls:
+      - name: Auth Service
+        url: /auth-service/v3/api-docs
+      - name: Account Service
+        url: /account-service/v3/api-docs
+    config-url: /v3/api-docs/swagger-config
+    display-request-duration: true
+    tags-sorter: alpha
+    operations-sorter: method
+
+# ========================================
+# RESILIENCE4J - CIRCUIT BREAKER
+# ========================================
+resilience4j:
+  circuitbreaker:
+    instances:
+      # Auth Service Circuit Breaker
+      authServiceCircuitBreaker:
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+        slow-call-rate-threshold: 100
+        slow-call-duration-threshold: 3s
+
+      # Order Service Circuit Breaker
+      orderServiceCircuitBreaker:
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+
+      # Product-Catalog Service Circuit Breaker
+      productCatalogServiceCircuitBreaker:
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+
+  # Time Limiter Configuration
+  timelimiter:
+    instances:
+      authServiceCircuitBreaker:
+        timeout-duration: 5s
+        cancel-running-future: true
+
+      orderServiceCircuitBreaker:
+        timeout-duration: 5s
+        cancel-running-future: true
+
+      productCatalogServiceCircuitBreaker:
+        timeout-duration: 5s
+        cancel-running-future: true
+
+# ========================================
+# ACTUATOR CONFIGURATION
+# ========================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway,circuitbreakers,metrics
+  endpoint:
+    health:
+      show-details: always
+    gateway:
+      enabled: true
+
+# ========================================
+# LOGGING CONFIGURATION
+# ========================================
+logging:
+  level:
+    root: INFO
+    com.JK.FinIce.apigateway: DEBUG
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.cloud.gateway.filter.GatewayMetricsFilter: WARN
+    reactor.netty: INFO

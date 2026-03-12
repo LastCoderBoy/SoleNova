@@ -1,6 +1,6 @@
-package com.jk.finice.apigateway.config;
+package com.jk.apigateway.config;
 
-import com.jk.finice.apigateway.security.JwtAuthenticationFilter;
+import com.jk.apigateway.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
 
-import static com.jk.finice.commonlibrary.constants.AppConstants.*;
+import static com.jk.commonlibrary.constants.AppConstants.*;
 
 /**
  * API Gateway Route Configuration
@@ -36,13 +36,7 @@ public class GatewayConfig {
                                 "/${segment}"))
                         .uri("lb://" + AUTH_SERVICE))
 
-                // Account Service Swagger
-                .route("account-service-swagger", r -> r
-                        .path("/account-service/v3/api-docs", "/account-service/swagger-ui/**")
-                        .filters(f -> f.rewritePath(
-                                "/account-service/(?<segment>.*)",
-                                "/${segment}"))
-                        .uri("lb://" + ACCOUNT_SERVICE))
+                // Will implement Swagger later for other services
 
 
                 // ==========================================
@@ -50,13 +44,18 @@ public class GatewayConfig {
                 // ==========================================
                 .route("auth-public", r -> r
                         .path(PUBLIC_PATHS.toArray(new String[0]))
+                        .filters(f -> f
+                                .circuitBreaker(c -> c
+                                        .setName("authServiceCircuitBreaker")
+                                        .setFallbackUri("forward:/fallback/auth"))
+                        )
                         .uri("lb://" + AUTH_SERVICE))
 
                 // ==========================================
-                // AUTH SERVICE - Authenticated routes
+                // AUTH SERVICE - Authenticated routes (User Profiles)
                 // ==========================================
                 .route("auth-service", r -> r
-                        .path(AUTH_PATH + "/**")
+                        .path(AUTH_PATH + "/user-profile/**")
                         .filters(f -> f
                                 .filter(jwtFilter.apply(new JwtAuthenticationFilter.Config()))
                                 .circuitBreaker(c -> c
@@ -65,40 +64,40 @@ public class GatewayConfig {
                         )
                         .uri("lb://" + AUTH_SERVICE))
 
-                // ==========================================
-                // ACCOUNT SERVICE - Authenticated routes
-                // ==========================================
-                .route("account-service", r -> r
-                        .path(ACCOUNT_PATH + "/**")
-                        .filters(f -> f
-                                .filter(jwtFilter.apply(new JwtAuthenticationFilter.Config()))
-                                .circuitBreaker(c -> c
-                                        .setName("accountServiceCircuitBreaker")
-                                        .setFallbackUri("forward:/fallback/account"))
-                        )
-                        .uri("lb://" + ACCOUNT_SERVICE))
 
                 // ==========================================
-                // TRANSACTION SERVICE - Authenticated routes
+                // PRODUCT CATALOG SERVICE - Public endpoint
                 // ==========================================
-                .route("transaction-service", r -> r
-                        .path(TRANSACTION_PATH + "/**")
+                .route("product-catalog-public", r -> r
+                        .path(PRODUCT_CATALOG_PATH + "/**")
+                        .filters(f -> f
+                                .circuitBreaker(c -> c
+                                        .setName("productCatalogServiceCircuitBreaker")
+                                        .setFallbackUri("forward:/fallback/product")))
+                        .uri("lb://" + PRODUCT_CATALOG_SERVICE))
+
+                // ==========================================
+                // ORDER SERVICE
+                // ==========================================
+                .route("order-service", r -> r
+                        .path(ORDER_PATH + "/**")
                         .filters(f -> f
                                 .filter(jwtFilter.apply(new JwtAuthenticationFilter.Config()))
                                 .circuitBreaker(c -> c
-                                        .setName("transactionServiceCircuitBreaker")
-                                        .setFallbackUri("forward:/fallback/transaction"))
+                                        .setName("orderServiceCircuitBreaker")
+                                        .setFallbackUri("forward:/fallback/order"))
                         )
-                        .uri("lb://" + TRANSACTION_SERVICE))
+                        .uri("lb://" + ORDER_SERVICE))
+
 
                 // ==========================================
                 // CATCH-ALL / DEFAULT (for unmapped paths)
                 // ==========================================
                 .route("default-route", r -> r
                         .path("/**")
-                        .filters(f -> f.setStatus(HttpStatus.NOT_FOUND))
+                        .and()
+                        .not(p -> p.path("/fallback/**"))   // exclude fallback endpoints
                         .uri("forward:/fallback/default"))
-
 
                 .build();
     }

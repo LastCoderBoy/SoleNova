@@ -1,5 +1,6 @@
 package com.jk.apigateway.security;
 
+import com.jk.apigateway.dto.JwtClaimsPayload;
 import com.jk.commonlibrary.exception.InternalServerException;
 import com.jk.commonlibrary.exception.InvalidTokenException;
 import io.jsonwebtoken.*;
@@ -13,12 +14,13 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 import static com.jk.commonlibrary.constants.AppConstants.*;
 
 @Component
 @Slf4j
-public class JwtProvider {
+public class JwtTokenProcessor {
 
     private SecretKey secretKey;
 
@@ -45,64 +47,33 @@ public class JwtProvider {
     }
 
     /**
-     * Validate JWT token
-     * Checks signature, expiration, and format
-     *
-     * @param token JWT token string
-     * @return true if valid, false otherwise
+     * Parse token ONCE and return all claims needed by the gateway.
+     * Returns empty Optional if token is invalid/expired.
      */
-    public boolean validateToken(String token) {
-        try {
-            Jws<Claims> claims = Jwts
-                    .parser()
-                    .verifyWith(secretKey)
-                    .build().parseSignedClaims(token);
-
-            log.info("[JWT-PROVIDER] JWT token is valid for user: {}", claims.getPayload().getSubject());
-            return true;
-        } catch (ExpiredJwtException e) {
-            log.warn("[JWT-PROVIDER] Token expired: {}", e.getMessage());
-            return false;
-        } catch (IllegalArgumentException e) {
-            log.warn("[JWT-PROVIDER] JWT token compact of handler are invalid. {}", e.getMessage());
-            return false;
-        } catch (MalformedJwtException me) {
-            log.warn("[JWT-PROVIDER] Malformed JWT token: {}", me.getMessage());
-            return false;
-        } catch (UnsupportedJwtException e) {
-            log.warn("[JWT-PROVIDER] Unsupported JWT token: {}", e.getMessage());
-            return false;
-        } catch (Exception e) {
-            log.error("[JWT-PROVIDER] Unexpected error occurred while verifying JWT token: {}", e.getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Extract username from JWT token
-     *
-     * @param token JWT token
-     * @return username (subject)
-     */
-    public String getUsernameFromJWT(String token) {
+    public Optional<JwtClaimsPayload> validateAndExtractClaims(String token) {
         try {
             Claims claims = Jwts.parser()
                     .verifyWith(secretKey)
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
-            return claims.getSubject();
+
+            Long userId = extractUserId(claims);
+            String username = claims.getSubject();
+            List<String> roles = extractRoles(claims);
+
+            return Optional.of(new JwtClaimsPayload(userId, username, roles));
+
+        } catch (ExpiredJwtException e) {
+            log.warn("[JWT-PROVIDER] Token expired: {}", e.getMessage());
+            return Optional.empty();
         } catch (JwtException e) {
-            log.warn("[JWT-PROVIDER] Invalid JWT token: {}", e.getMessage());
-            throw new InvalidTokenException("Invalid JWT token");
-        } catch (Exception e) {
-            log.error("[JWT-PROVIDER] Unexpected error occurred while extracting username from JWT token: {}", e.getMessage());
-            throw new InternalServerException("Unexpected error occurred!");
+            log.warn("[JWT-PROVIDER] Invalid token: {}", e.getMessage());
+            return Optional.empty();
         }
     }
 
-    public Long getUserIdFromToken(String token) {
-        Claims claims = extractAllClaims(token);
+    private Long extractUserId(Claims claims) {
         Object userIdKey = claims.get(JWT_CLAIM_USER_ID);
 
         if (userIdKey instanceof Integer) {
@@ -116,10 +87,8 @@ public class JwtProvider {
         return null;
     }
 
-    @SuppressWarnings("unchecked")
-    public List<String> getRolesFromToken(String token) {
+    private List<String> extractRoles(Claims claims) {
         try {
-            Claims claims = extractAllClaims(token);
             Object roles = claims.get(JWT_CLAIM_ROLES);
 
             if (roles instanceof List) {
@@ -132,6 +101,41 @@ public class JwtProvider {
             return List.of(); // Return empty list if roles not found
         }
     }
+
+//
+//    /**
+//     * Validate JWT token
+//     * Checks signature, expiration, and format
+//     *
+//     * @param token JWT token string
+//     * @return true if valid, false otherwise
+//     */
+//    public boolean validateToken(String token) {
+//        try {
+//            Jws<Claims> claims = Jwts
+//                    .parser()
+//                    .verifyWith(secretKey)
+//                    .build().parseSignedClaims(token);
+//
+//            log.info("[JWT-PROVIDER] JWT token is valid for user: {}", claims.getPayload().getSubject());
+//            return true;
+//        } catch (ExpiredJwtException e) {
+//            log.warn("[JWT-PROVIDER] Token expired: {}", e.getMessage());
+//            return false;
+//        } catch (IllegalArgumentException e) {
+//            log.warn("[JWT-PROVIDER] JWT token compact of handler are invalid. {}", e.getMessage());
+//            return false;
+//        } catch (MalformedJwtException me) {
+//            log.warn("[JWT-PROVIDER] Malformed JWT token: {}", me.getMessage());
+//            return false;
+//        } catch (UnsupportedJwtException e) {
+//            log.warn("[JWT-PROVIDER] Unsupported JWT token: {}", e.getMessage());
+//            return false;
+//        } catch (Exception e) {
+//            log.error("[JWT-PROVIDER] Unexpected error occurred while verifying JWT token: {}", e.getMessage());
+//            return false;
+//        }
+//    }
 
     public Date getExpirationDateFromToken(String token) {
         try {
@@ -178,4 +182,5 @@ public class JwtProvider {
             throw new RuntimeException("Invalid JWT token", e);
         }
     }
+
 }

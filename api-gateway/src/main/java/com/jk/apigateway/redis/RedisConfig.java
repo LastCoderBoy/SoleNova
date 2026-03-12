@@ -1,4 +1,4 @@
-package com.jk.finice.apigateway.redis;
+package com.jk.apigateway.redis;
 
 
 import org.springframework.context.annotation.Bean;

@@ -1,4 +1,6 @@
 package com.jk.apigateway.dto;
 
-public class ss {
-}
+
+import java.util.List;
+
+public record JwtClaimsPayload(Long userId, String username, List<String> roles) {}

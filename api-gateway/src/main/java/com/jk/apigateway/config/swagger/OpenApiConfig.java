@@ -1,7 +1,6 @@
-package com.jk.finice.apigateway.config.swagger;
+package com.jk.apigateway.config.swagger;
 
 import org.springdoc.core.models.GroupedOpenApi;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.route.RouteDefinition;
 import org.springframework.cloud.gateway.route.RouteDefinitionLocator;
 import org.springframework.context.annotation.Bean;

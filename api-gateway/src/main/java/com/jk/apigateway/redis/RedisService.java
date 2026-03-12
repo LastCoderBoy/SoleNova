@@ -1,4 +1,4 @@
-package com.jk.finice.apigateway.redis;
+package com.jk.apigateway.redis;
 
 
 import lombok.RequiredArgsConstructor;
@@ -7,7 +7,7 @@ import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
-import static com.jk.finice.commonlibrary.constants.AppConstants.CACHE_TOKEN_BLACKLIST_PREFIX;
+import static com.jk.commonlibrary.constants.AppConstants.CACHE_TOKEN_BLACKLIST_PREFIX;
 
 /**
  * Redis Service for API Gateway (Reactive operations)
