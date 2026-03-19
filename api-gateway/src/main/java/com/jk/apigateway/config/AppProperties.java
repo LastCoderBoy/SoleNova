@@ -13,7 +13,6 @@ import java.util.List;
  */
 @Configuration
 @ConfigurationProperties(prefix = "app")
-@EnableConfigurationProperties(AppProperties.class)
 @Data
 public class AppProperties {
 

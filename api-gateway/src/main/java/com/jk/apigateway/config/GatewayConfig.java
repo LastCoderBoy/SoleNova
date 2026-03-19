@@ -8,6 +8,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
 
+import java.util.List;
+
 import static com.jk.commonlibrary.constants.AppConstants.*;
 
 /**
@@ -38,6 +40,57 @@ public class GatewayConfig {
 
                 // Will implement Swagger later for other services
 
+
+                // ==========================================
+                // AUTH ADMIN — must come before auth-service route
+                // ==========================================
+                .route("auth-admin", r -> r
+                        .path(AUTH_PATH + "/admin/**")
+                        .filters(f -> f
+                                .filter(jwtFilter.apply(
+                                        JwtAuthenticationFilter.Config.builder()
+                                                .requiredRoles(List.of("ROLE_ADMIN"))
+                                                .build()
+                                ))
+                                .circuitBreaker(c -> c
+                                        .setName("authServiceCircuitBreaker")
+                                        .setFallbackUri("forward:/fallback/auth"))
+                        )
+                        .uri("lb://" + AUTH_SERVICE))
+
+                // ==========================================
+                // PRODUCT CATALOG ADMIN
+                // ==========================================
+                .route("product-catalog-admin", r -> r
+                        .path(PRODUCT_CATALOG_PATH + "/admin/**")
+                        .filters(f -> f
+                                .filter(jwtFilter.apply(
+                                        JwtAuthenticationFilter.Config.builder()
+                                                .requiredRoles(List.of("ROLE_ADMIN"))
+                                                .build()
+                                ))
+                                .circuitBreaker(c -> c
+                                        .setName("productCatalogServiceCircuitBreaker")
+                                        .setFallbackUri("forward:/fallback/product"))
+                        )
+                        .uri("lb://" + PRODUCT_CATALOG_SERVICE))
+
+                // ==========================================
+                // ORDER ADMIN
+                // ==========================================
+                .route("order-admin", r -> r
+                        .path(ORDER_PATH + "/admin/**")
+                        .filters(f -> f
+                                .filter(jwtFilter.apply(
+                                        JwtAuthenticationFilter.Config.builder()
+                                                .requiredRoles(List.of("ROLE_ADMIN"))
+                                                .build()
+                                ))
+                                .circuitBreaker(c -> c
+                                        .setName("orderServiceCircuitBreaker")
+                                        .setFallbackUri("forward:/fallback/order"))
+                        )
+                        .uri("lb://" + ORDER_SERVICE))
 
                 // ==========================================
                 // PUBLIC PATH (No JWT required)
@@ -91,7 +144,7 @@ public class GatewayConfig {
 
 
                 // ==========================================
-                // CATCH-ALL / DEFAULT (for unmapped paths)
+                // CATCH-ALL / DEFAULT (MUST remain last — catches all unmatched routes)
                 // ==========================================
                 .route("default-route", r -> r
                         .path("/**")

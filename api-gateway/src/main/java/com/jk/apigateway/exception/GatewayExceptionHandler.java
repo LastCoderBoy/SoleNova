@@ -87,7 +87,10 @@ public class GatewayExceptionHandler implements ErrorWebExceptionHandler {
                 if (status.is5xxServerError()) {
                     yield "An internal error occurred. Please try again later";
                 }
-                // For 4xx errors, return the actual message
+                // For ResponseStatusException, use the reason phrase not the full message
+                if (ex instanceof ResponseStatusException rse && rse.getReason() != null) {
+                    yield rse.getReason();
+                }
                 yield ex.getMessage() != null ? ex.getMessage() : "An error occurred";
             }
         };
