@@ -18,7 +18,7 @@ public final class AppConstants {
     public static final String IP_ADDRESS_HEADER = "X-Forwarded-For";
     public static final String USER_ID_HEADER = "X-User-ID";
     public static final String USER_ROLES_HEADER = "X-User-Roles";
-    public static final String USERNAME_HEADER = "X-Username";
+    public static final String USER_EMAIL_HEADER = "X-User-Email";
 
     // ========== Service Names ==========
     public static final String EUREKA_SERVER = "eureka-server";
@@ -39,6 +39,7 @@ public final class AppConstants {
             AUTH_PATH + "/login",
             AUTH_PATH + "/refresh-token",
             AUTH_PATH + "/verify-email/**",
+            AUTH_PATH + "/resend-verification",
             AUTH_PATH + "/forgot-password",
             AUTH_PATH + "/reset-password",
 
@@ -81,7 +82,8 @@ public final class AppConstants {
     public static final long CACHE_OTP_TTL = 5;                // 5 minutes
 
     // ========== Pagination ==========
-    public static final int DEFAULT_PAGE_SIZE = 20;
+    public static final String DEFAULT_PAGE_NUMBER = "0";
+    public static final String DEFAULT_PAGE_SIZE = "20";
     public static final int MAX_PAGE_SIZE = 100;
     public static final String DEFAULT_SORT_FIELD = "createdAt";
     public static final String DEFAULT_SORT_DIRECTION = "DESC";

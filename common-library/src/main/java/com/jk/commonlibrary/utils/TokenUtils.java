@@ -13,7 +13,6 @@ import static com.jk.commonlibrary.constants.AppConstants.BEARER_PREFIX_LENGTH;
  * Shared across all microservices that handle authorization
  *
  * @author LastCoderBoy
- * @since 2026-01-24
  */
 @Slf4j
 public class TokenUtils {

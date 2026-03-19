@@ -13,7 +13,6 @@ import java.io.Serializable;
  *
  * @param <T> Type of data payload
  * @author LastCoderBoy
- * @since 2026-01-22
  */
 @AllArgsConstructor
 @NoArgsConstructor

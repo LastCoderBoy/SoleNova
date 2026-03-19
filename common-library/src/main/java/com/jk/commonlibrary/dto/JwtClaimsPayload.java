@@ -1,4 +1,9 @@
 package com.jk.commonlibrary.dto;
 
-public class ss {
-}
+import java.util.List;
+
+public record JwtClaimsPayload(
+        Long userId,
+        String email,
+        List<String> roles
+) {}
