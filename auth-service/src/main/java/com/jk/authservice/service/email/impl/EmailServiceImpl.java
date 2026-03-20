@@ -1,5 +1,6 @@
 package com.jk.authservice.service.email.impl;
 
+import com.jk.authservice.dto.request.ResetPasswordRequest;
 import com.jk.authservice.entity.EmailToken;
 import com.jk.authservice.entity.User;
 import com.jk.authservice.enums.AccountStatus;
@@ -12,6 +13,7 @@ import com.jk.commonlibrary.exception.ResourceNotFoundException;
 import com.jk.commonlibrary.exception.ValidationException;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,6 +31,9 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
+import static com.jk.commonlibrary.constants.AppConstants.EMAIL_VERIFICATION_EXPIRY_MINUTES;
+import static com.jk.commonlibrary.constants.AppConstants.PASSWORD_RESET_EXPIRY_MINUTES;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -43,6 +48,9 @@ public class EmailServiceImpl implements EmailService {
 
     @Value("${email.verification.url}")
     private String emailVerificationUrl;
+
+    @Value("${app.frontend.base-url}")
+    private String frontendBaseUrl;
 
     private final String appName = "FinIce";
 
@@ -60,7 +68,7 @@ public class EmailServiceImpl implements EmailService {
                     "{{LAST_NAME}}", user.getLastName() != null ? user.getLastName() : "",
                     "{{VERIFICATION_URL}}", verificationUrl,
                     "{{APP_NAME}}", appName,
-                    "{{EXPIRY_MINUTES}}", "15"
+                    "{{EXPIRY_MINUTES}}", String.valueOf(EMAIL_VERIFICATION_EXPIRY_MINUTES)
             );
 
             String htmlContent = replacePlaceholders(htmlTemplate, placeholders);
@@ -70,17 +78,14 @@ public class EmailServiceImpl implements EmailService {
 
             log.info("[EMAIL-SERVICE] Verification email sent to: {}", user.getEmail());
 
-        } catch (IOException e) {
-            log.error("[EMAIL-SERVICE] Failed to load email template: {}", e.getMessage(), e);
-            throw new InternalServerException("Failed to send verification email");
         } catch (Exception e) {
-            log.error("[EMAIL-SERVICE] Failed to send verification email: {}", e.getMessage(), e);
-            throw new InternalServerException("Failed to send verification email");
+            log.error("[EMAIL-SERVICE] Failed to send verification email to {}: {}",
+                    user.getEmail(), e.getMessage(), e);
         }
     }
 
     @Transactional
-    public void verifyEmail(String token) {
+    public void clickVerificationEmailLink(String token) {
         User user = emailTokenService.verifyToken(token, TokenType.EMAIL_VERIFICATION);
 
         if (user.getEmailVerified()) {
@@ -96,22 +101,56 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Transactional
-    public void resendVerificationEmail(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    public void resendVerificationEmail(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> {
+                    log.warn("[EMAIL-SERVICE] User not found with email: {}", email);
+                    return new ResourceNotFoundException("User not found");
+                });
 
         if (user.getEmailVerified()) {
             throw new ValidationException("Email is already verified");
         }
 
         // Create new token
-        emailTokenService.revokeUserTokens(userId, TokenType.EMAIL_VERIFICATION);
+        emailTokenService.revokeUserTokens(user.getId(), TokenType.EMAIL_VERIFICATION);
         EmailToken emailToken = emailTokenService.createEmailToken(user, TokenType.EMAIL_VERIFICATION);
 
         // Send email
         sendVerificationEmail(user, emailToken);
 
-        log.info("[EMAIL-SERVICE] Verification email resent to user: {}", userId);
+        log.info("[EMAIL-SERVICE] Verification email resent to user: {}", email);
+    }
+
+    @Async("taskExecutor")
+    @Override
+    public void sendForgotPasswordEmail(User user, EmailToken emailToken) {
+        try {
+            String subject = appName + " - Reset Your Password";
+            String resetUrl = buildResetPasswordUrl(emailToken.getToken());
+
+            String htmlTemplate = loadHtmlTemplate("templates/email/forgot-password.html");
+            String cssStyles    = loadCssStyles("static/email/css/email-styles.css");
+
+            Map<String, String> placeholders = Map.of(
+                    "{{FIRST_NAME}}",      user.getFirstName(),
+                    "{{RESET_URL}}",       resetUrl,
+                    "{{APP_NAME}}",        appName,
+                    "{{EXPIRY_MINUTES}}", String.valueOf(PASSWORD_RESET_EXPIRY_MINUTES)
+            );
+
+            String htmlContent = replacePlaceholders(htmlTemplate, placeholders);
+            htmlContent = inlineCss(htmlContent, cssStyles);
+
+            sendEmail(user.getEmail(), subject, htmlContent);
+
+            log.info("[EMAIL-SERVICE] Password reset email sent to: {}", user.getEmail());
+
+        } catch (Exception e) {
+            // Never rethrow inside @Async — exception would be swallowed anyway
+            log.error("[EMAIL-SERVICE] Failed to send password reset email to {}: {}",
+                    user.getEmail(), e.getMessage(), e);
+        }
     }
 
     // ========= Private Helper Methods =========
@@ -133,6 +172,11 @@ public class EmailServiceImpl implements EmailService {
     private String buildVerificationUrl(String token) {
         // Full URL for email link
         return String.format("%s/verify-email?token=%s", emailVerificationUrl, token);
+    }
+
+    private String buildResetPasswordUrl(String token) {
+        // Points to FRONTEND, not API — frontend extracts token and calls POST /reset-password
+        return String.format("%s/reset-password?token=%s", frontendBaseUrl, token);
     }
 
     private String loadHtmlTemplate(String templatePath) throws IOException {

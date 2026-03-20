@@ -17,6 +17,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
+import static com.jk.commonlibrary.constants.AppConstants.EMAIL_VERIFICATION_EXPIRY_MINUTES;
+import static com.jk.commonlibrary.constants.AppConstants.PASSWORD_RESET_EXPIRY_MINUTES;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -27,10 +30,6 @@ public class EmailTokenServiceImpl implements EmailTokenService {
 
     @Value("${spring.mail.username}")
     private String emailFrom;
-
-
-    private static final int EMAIL_VERIFICATION_EXPIRY_MINUTES = 15;
-    private static final int PASSWORD_RESET_EXPIRY_MINUTES = 10;
 
     @Override
     @Transactional

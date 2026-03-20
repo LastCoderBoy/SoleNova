@@ -5,6 +5,7 @@ import com.jk.authservice.config.redis.RedisService;
 import com.jk.authservice.config.security.JwtTokenProcessor;
 import com.jk.authservice.dto.request.LoginRequest;
 import com.jk.authservice.dto.request.RegisterRequest;
+import com.jk.authservice.dto.request.ResetPasswordRequest;
 import com.jk.authservice.dto.response.AuthResponse;
 import com.jk.authservice.entity.*;
 import com.jk.authservice.enums.AccountStatus;
@@ -246,14 +247,52 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Transactional
     @Override
     public void forgotPassword(String email) {
+        log.info("[AUTH-SERVICE] Forgot password requested for: {}", email);
+
         userRepository.findByEmail(email).ifPresent(user -> {
+
+            // Revoke any existing unused reset tokens for this user
             emailTokenService.revokeUserTokens(user.getId(), TokenType.PASSWORD_RESET);
 
             EmailToken emailToken = emailTokenService.createEmailToken(user, TokenType.PASSWORD_RESET);
 
-            emailService.sendPasswordResetEmail(user.getEmail(), user.getFullName(), emailToken);
+            // Send async — user sees response immediately
+            emailService.sendForgotPasswordEmail(user, emailToken);
 
         });
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void resetPassword(String emailToken, ResetPasswordRequest request, HttpServletResponse httpResponse){
+        log.info("[AUTH-SERVICE] Processing password reset");
+
+        if(!request.isPasswordsMatch()){
+            throw new ValidationException("Passwords do not match");
+        }
+
+        //  marks it as used inside the method
+        User userEntity = emailTokenService.verifyToken(emailToken, TokenType.PASSWORD_RESET);
+
+        // 3. Prevent reuse of same password
+        if (passwordEncoder.matches(request.getNewPassword(), userEntity.getPassword())) {
+            throw new ValidationException(
+                    "New password must be different from your current password");
+        }
+
+        userEntity.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userEntity.setPasswordChangedAt(LocalDateTime.now());
+        userEntity.resetFailedLoginAttempts();
+        userRepository.save(userEntity);
+
+        // Clear cookie and revoke all refresh tokens — force re-login everywhere
+        cookiesManager.clearRefreshTokenCookie(httpResponse);
+        refreshTokenService.revokeAllRefreshTokensAsync(userEntity.getId());
+
+        // Invalidate cached profile
+        redisService.invalidateUserProfile(userEntity.getId());
+
+        log.info("[PROFILE-SERVICE] Password changed successfully for user ID: {})", userEntity.getId());
     }
 
     // ================================================

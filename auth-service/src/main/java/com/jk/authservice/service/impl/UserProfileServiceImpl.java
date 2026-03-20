@@ -132,22 +132,14 @@ public class UserProfileServiceImpl implements UserProfileService {
     @Transactional(rollbackFor = Exception.class)
     public void requestEmailChange(ChangeEmailRequest request, Long id){
         User userEntity = findUserById(id);
-        String savedPassword = userEntity.getPassword();
 
-        // Validate password for email change
-        boolean isCurrentPasswordValid = passwordEncoder.matches(request.getCurrentPassword(), savedPassword);
-        if(!isCurrentPasswordValid){
+        if (!passwordEncoder.matches(request.getCurrentPassword(), userEntity.getPassword())) {
             throw new BadCredentialsException("Current password is incorrect");
         }
 
-        // Check if new email is already in use
-        if(userRepository.existsByEmail(request.getNewEmail())){
-            throw new DuplicateResourceFoundException("Email already exists");
+        if (userRepository.existsByEmail(request.getNewEmail())) {
+            throw new DuplicateResourceFoundException("Email already in use");
         }
-
-        userEntity.setEmail(request.getNewEmail());
-        userEntity.setEmailVerified(false);
-        userRepository.save(userEntity);
 
         // Invalidate old tokens & Generate new ones & Send verification email
         try {
@@ -231,7 +223,10 @@ public class UserProfileServiceImpl implements UserProfileService {
     @Transactional(readOnly = true)
     public User findUserById(Long id) {
         return userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + id));
+                .orElseThrow( () -> {
+                    log.error("[PROFILE-SERVICE] User not found with ID: {}", id);
+                    return new ResourceNotFoundException("User not found");
+                });
     }
 
 

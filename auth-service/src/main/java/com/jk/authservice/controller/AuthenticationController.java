@@ -2,15 +2,11 @@ package com.jk.authservice.controller;
 
 
 import com.jk.authservice.controller.docs.*;
-import com.jk.authservice.dto.*;
 import com.jk.authservice.dto.request.*;
 import com.jk.authservice.dto.response.AuthResponse;
-import com.jk.authservice.dto.response.UserAddressResponse;
-import com.jk.authservice.dto.response.UserProfileResponse;
-import com.jk.authservice.entity.UserPrincipal;
 import com.jk.authservice.service.AuthenticationService;
+import com.jk.authservice.service.email.EmailService;
 import com.jk.commonlibrary.dto.ApiResponse;
-import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -19,7 +15,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import static com.jk.commonlibrary.constants.AppConstants.AUTH_PATH;
@@ -37,6 +32,7 @@ import static com.jk.commonlibrary.constants.AppConstants.AUTH_PATH;
 public class AuthenticationController {
 
     private final AuthenticationService authService;
+    private final EmailService emailService;
 
     @RegisterDocs
     @PostMapping("/register")
@@ -63,6 +59,20 @@ public class AuthenticationController {
         return ResponseEntity.ok(ApiResponse.success("User logged in successfully", authResponse));
     }
 
+    @PostMapping("/resend-verification")
+    public ResponseEntity<ApiResponse<Void>> resendVerification(
+            @Valid @RequestBody ResendVerificationRequest resendVerificationRequest) {
+
+        log.info("[EMAIL-CONTROLLER] Resend verification request for user: {}",
+                resendVerificationRequest.getEmail());
+
+        emailService.resendVerificationEmail(resendVerificationRequest.getEmail());
+
+        return ResponseEntity.ok(ApiResponse.success(
+                "If that email is registered and unverified, a new link has been sent."
+        ));
+    }
+
     // refresh token will be extracted from the cookies
     @PostMapping("/refresh-token")
     public ResponseEntity<ApiResponse<AuthResponse>> refreshJwtToken(HttpServletRequest request,
@@ -85,5 +95,17 @@ public class AuthenticationController {
         return ResponseEntity.ok(ApiResponse.success(
                 "If that email is registered, a password reset link has been sent."
         ));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(@RequestParam String emailToken,
+                                                           @Valid @RequestBody ResetPasswordRequest request,
+                                                           HttpServletResponse httpResponse) {
+
+        log.info("[AUTH-CONTROLLER] Reset password request received");
+        authService.resetPassword(emailToken, request, httpResponse);
+
+        return ResponseEntity.ok(ApiResponse.success(
+                "Password reset successfully. Please log in with your new credentials."));
     }
 }

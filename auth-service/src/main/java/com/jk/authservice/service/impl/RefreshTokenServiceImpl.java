@@ -65,8 +65,8 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
                 });
     }
 
+    @Transactional
     @Override
-    @Transactional(readOnly = true)
     public RefreshToken verifyRefreshToken(String token, HttpServletResponse response) {
         RefreshToken storedToken = findByToken(token);
 

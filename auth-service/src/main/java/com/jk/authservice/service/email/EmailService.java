@@ -7,7 +7,9 @@ public interface EmailService {
 
     void sendVerificationEmail(User user, EmailToken emailToken);
 
-    void verifyEmail(String token);
+    void clickVerificationEmailLink(String token);
 
-    void resendVerificationEmail(Long userId);
+    void resendVerificationEmail(String email);
+
+    void sendForgotPasswordEmail(User user, EmailToken emailToken);
 }

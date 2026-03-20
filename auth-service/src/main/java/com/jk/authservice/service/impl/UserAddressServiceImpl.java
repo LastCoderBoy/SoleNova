@@ -106,9 +106,14 @@ public class UserAddressServiceImpl implements UserAddressService {
     public UserAddressResponse setDefaultAddress(Long addressId, Long userId) {
         UserAddress userAddress = findAddressById(addressId);
         User userEntity = userProfileService.findUserById(userId);
+
         if(!userAddress.getUser().getId().equals(userEntity.getId())){
             throw new UnauthorizedException("You are not authorized to set this address as default");
         }
+
+        // Undefault the default addresses
+        userAddressRepository.unsetDefaultAddresses(userId);
+
         userAddress.setIsDefault(true);
         userAddress = userAddressRepository.save(userAddress);
 

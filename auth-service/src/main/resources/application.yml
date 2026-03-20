@@ -1,0 +1,165 @@
+# ========================================
+# AUTH SERVICE CONFIGURATION
+# ========================================
+spring:
+  application:
+    name: auth-service
+
+  # ========================================
+  # DATABASE CONFIGURATION
+  # ========================================
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${AUTH_DB_NAME}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      pool-name: AuthServiceHikariPool
+
+  jpa:
+    hibernate:
+      ddl-auto: update  # Change to 'validate' in production
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    open-in-view: false
+
+  # ========================================
+  # REDIS CONFIGURATION
+  # ========================================
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD:}
+      database: 0     # api-gateway also uses the same database
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 2
+          max-wait: 5000ms
+        shutdown-timeout: 100ms
+
+  # ========================================
+  # EMAIL CONFIGURATION
+  # ========================================
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+    default-encoding: UTF-8
+
+email:
+  verification:
+    url: ${EMAIL_VERIFICATION_URL}
+
+app:
+  frontend:
+    base-url: ${FRONTEND_BASE_URL:http://localhost:3000}
+
+
+# ========================================
+# SERVER CONFIGURATION
+# ========================================
+server:
+  port: ${AUTH_SERVICE_PORT}
+  servlet:
+    context-path: /
+
+
+# ========================================
+# EUREKA CLIENT CONFIGURATION
+# ========================================
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL}
+    fetch-registry: true
+    register-with-eureka: true
+    registry-fetch-interval-seconds: 30
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 30
+    lease-expiration-duration-in-seconds: 90
+    instance-id: ${spring.application.name}:${server.port}
+    metadata-map:
+      zone: primary
+      version: 1.0.0
+
+# ========================================
+# JWT CONFIGURATION
+# ========================================
+jwt:
+  secret: ${JWT_SECRET}
+
+# ========================================
+# SPRINGDOC / SWAGGER CONFIGURATION
+# ========================================
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    tags-sorter: alpha
+    operations-sorter: method
+    display-request-duration: true
+    doc-expansion: none
+  show-actuator: false
+  paths-to-match: /api/v1/auth/**
+  packages-to-scan: com.jk.authservice.controller
+
+# ========================================
+# ACTUATOR CONFIGURATION
+# ========================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  health:
+    livenessState:
+      enabled: true
+    readinessState:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+# ========================================
+# LOGGING CONFIGURATION
+# ========================================
+logging:
+  level:
+    root: INFO
+    com.jk.authservice: DEBUG
+    org.springframework.security: INFO
+    org.springframework.cloud.netflix.eureka: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  file:
+    name: logs/auth-service.log
