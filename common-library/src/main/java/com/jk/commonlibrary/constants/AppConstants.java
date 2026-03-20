@@ -88,6 +88,10 @@ public final class AppConstants {
     public static final String DEFAULT_SORT_FIELD = "createdAt";
     public static final String DEFAULT_SORT_DIRECTION = "DESC";
 
+    // ========== General Constants ==========
+    public static final int EMAIL_VERIFICATION_EXPIRY_MINUTES = 15;
+    public static final int PASSWORD_RESET_EXPIRY_MINUTES = 10;
+
 
     // ========================================
     // OpenAPI/Swagger Documentation Paths
