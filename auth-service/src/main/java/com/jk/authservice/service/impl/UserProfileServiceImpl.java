@@ -6,13 +6,16 @@ import com.jk.authservice.config.security.JwtTokenProcessor;
 import com.jk.authservice.dto.request.ChangeEmailRequest;
 import com.jk.authservice.dto.request.ChangePasswordRequest;
 import com.jk.authservice.dto.request.UpdateProfileRequest;
+import com.jk.authservice.dto.response.UserAddressResponse;
 import com.jk.authservice.dto.response.UserProfileResponse;
 import com.jk.authservice.entity.EmailToken;
 import com.jk.authservice.entity.User;
 import com.jk.authservice.enums.TokenType;
 import com.jk.authservice.exception.DuplicateResourceFoundException;
+import com.jk.authservice.mapper.UserMapper;
 import com.jk.authservice.repository.UserRepository;
 import com.jk.authservice.service.RefreshTokenService;
+import com.jk.authservice.service.UserAddressService;
 import com.jk.authservice.service.UserProfileService;
 import com.jk.authservice.service.email.EmailService;
 import com.jk.authservice.service.email.EmailTokenService;
@@ -30,9 +33,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
-import static com.jk.authservice.mapper.UserMapper.mapToUserProfileResponse;
 import static com.jk.commonlibrary.constants.AppConstants.AUTHORIZATION_HEADER;
 
 @Service
@@ -47,6 +50,7 @@ public class UserProfileServiceImpl implements UserProfileService {
     private final PasswordEncoder passwordEncoder;
     private final EmailTokenService emailTokenService;
     private final EmailService emailService;
+    private final UserAddressService userAddressService;
 
     private final UserRepository userRepository;
 
@@ -60,8 +64,18 @@ public class UserProfileServiceImpl implements UserProfileService {
             return cachedUserProfile;
         }
 
-        User user = findUserById(userId);
-        UserProfileResponse userProfileResponse = mapToUserProfileResponse(user);
+        User user = userRepository.findByIdWithRoles(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        List<String> roles = user.getRoles().stream()
+                .map(r -> r.getName().name())
+                .toList(); // safe — eagerly loaded by fetch join
+
+        List<UserAddressResponse> userAddresses =
+                userAddressService.getAddresses(user.getId());// Preload addresses to avoid lazy loading issues
+
+        UserProfileResponse userProfileResponse =
+                UserMapper.mapToUserProfileResponse(user, userAddresses, roles);
 
         // Cache for future requests
         redisService.cacheUserProfile(user.getId(), userProfileResponse);
@@ -72,13 +86,18 @@ public class UserProfileServiceImpl implements UserProfileService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UserProfileResponse updateProfile(UpdateProfileRequest request, Long id) {
+    public UserProfileResponse updateProfile(UpdateProfileRequest request, Long userId) {
         if(!request.isAtLeastOneFieldProvided()){
             throw new ValidationException("At least one field must be provided for update");
         }
 
         // find the User and update the fields
-        User user = findUserById(id);
+        User user = userRepository.findByIdWithRoles(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        List<String> roles = user.getRoles().stream()
+                .map(r -> r.getName().name())
+                .toList(); // safe — eagerly loaded by fetch join
         if(request.getFirstName() != null){
             user.setFirstName(request.getFirstName());
         }
@@ -87,12 +106,18 @@ public class UserProfileServiceImpl implements UserProfileService {
         }
 
         user = userRepository.save(user);
-        log.info("[PROFILE-SERVICE] User profile updated successfully for user ID: {}", id);
+        log.info("[PROFILE-SERVICE] User profile updated successfully for user ID: {}", userId);
+
+        List<UserAddressResponse> userAddresses =
+                userAddressService.getAddresses(user.getId());// Preload addresses to avoid lazy loading issues
+
+        UserProfileResponse userProfileResponse =
+                UserMapper.mapToUserProfileResponse(user, userAddresses, roles);
 
         // Invalidate and refresh cache after update
-        redisService.refreshUserProfile(user.getId(), mapToUserProfileResponse(user));
+        redisService.refreshUserProfile(user.getId(), userProfileResponse);
 
-        return mapToUserProfileResponse(user);
+        return userProfileResponse;
     }
 
     @Override
@@ -220,8 +245,7 @@ public class UserProfileServiceImpl implements UserProfileService {
     //               HELPER METHODS
     // ==========================================
 
-    @Transactional(readOnly = true)
-    public User findUserById(Long id) {
+    private User findUserById(Long id) {
         return userRepository.findById(id)
                 .orElseThrow( () -> {
                     log.error("[PROFILE-SERVICE] User not found with ID: {}", id);

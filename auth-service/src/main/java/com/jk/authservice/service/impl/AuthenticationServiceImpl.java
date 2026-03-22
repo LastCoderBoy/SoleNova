@@ -7,19 +7,21 @@ import com.jk.authservice.dto.request.LoginRequest;
 import com.jk.authservice.dto.request.RegisterRequest;
 import com.jk.authservice.dto.request.ResetPasswordRequest;
 import com.jk.authservice.dto.response.AuthResponse;
+import com.jk.authservice.dto.response.UserAddressResponse;
 import com.jk.authservice.entity.*;
 import com.jk.authservice.enums.AccountStatus;
 import com.jk.authservice.enums.TokenType;
 import com.jk.authservice.exception.AccountLockedException;
 import com.jk.authservice.exception.AccountNotVerifiedException;
 import com.jk.authservice.exception.DuplicateResourceFoundException;
+import com.jk.authservice.mapper.UserMapper;
 import com.jk.authservice.queryService.RoleQueryService;
 import com.jk.authservice.repository.UserRepository;
 import com.jk.authservice.service.AuthenticationService;
+import com.jk.authservice.service.RefreshTokenService;
+import com.jk.authservice.service.UserAddressService;
 import com.jk.authservice.service.email.EmailService;
 import com.jk.authservice.service.email.EmailTokenService;
-import com.jk.authservice.service.RefreshTokenService;
-import com.jk.authservice.service.email.impl.EmailServiceImpl;
 import com.jk.authservice.utils.HeaderExtractor;
 import com.jk.commonlibrary.exception.*;
 import jakarta.servlet.http.HttpServletRequest;
@@ -37,9 +39,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-import static com.jk.authservice.mapper.UserMapper.mapToAuthResponse;
-import static com.jk.authservice.mapper.UserMapper.mapToUserProfileResponse;
-
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -54,6 +53,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenService refreshTokenService;
     private final AuthenticationManager authenticationManager;
+    private final UserAddressService userAddressService;
 
     // =========== REPOSITORIES ===========
     private final UserRepository userRepository;
@@ -113,7 +113,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         // Set the Refresh token cookie
         cookiesManager.setRefreshTokenCookie(response, refreshToken.getToken());
 
-        return mapToAuthResponse(newUser, accessToken);
+        return UserMapper.mapToAuthResponse(newUser, roleNames, accessToken);
     }
 
     // No need Transactional
@@ -136,8 +136,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             log.info("[AUTH-SERVICE] Authentication successful for user: {} (ID: {})",
                     principal.getUsername(), principal.getId());
 
-            // Fetch full user entity
+            // Fetch full user entity with addresses
             User user = findUserById(principal.getId());
+            List<UserAddressResponse> userAddresses =
+                    userAddressService.getAddresses(principal.getId());// Force load addresses for caching
 
             String clientIp = HeaderExtractor.extractClientIp(httpRequest);
             String userAgent = HeaderExtractor.extractUserAgent(httpRequest);
@@ -162,9 +164,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             cookiesManager.setRefreshTokenCookie(httpResponse, refreshToken.getToken());
 
             // Cache user profile after successful login
-            redisService.cacheUserProfile(user.getId(), mapToUserProfileResponse(user));
+            redisService.cacheUserProfile(
+                    user.getId(),
+                    UserMapper.mapToUserProfileResponse(user, userAddresses, principal.getListOfRoles())
+            );
 
-            return mapToAuthResponse(user, accessToken);
+            return UserMapper.mapToAuthResponse(user, principal.getListOfRoles(), accessToken);
 
         } catch (DisabledException e) {
             // isEnabled() returned false — email not verified OR status not ACTIVE
@@ -241,7 +246,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         // Set the Refresh token cookie
         cookiesManager.setRefreshTokenCookie(response, newRefreshToken.getToken());
 
-        return mapToAuthResponse(user, accessToken);
+        return UserMapper.mapToAuthResponse(user, userRoles, accessToken);
     }
 
     @Transactional

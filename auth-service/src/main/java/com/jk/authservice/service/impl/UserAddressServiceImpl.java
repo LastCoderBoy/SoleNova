@@ -6,6 +6,7 @@ import com.jk.authservice.dto.response.UserAddressResponse;
 import com.jk.authservice.entity.User;
 import com.jk.authservice.entity.UserAddress;
 import com.jk.authservice.repository.UserAddressRepository;
+import com.jk.authservice.repository.UserRepository;
 import com.jk.authservice.service.UserAddressService;
 import com.jk.authservice.service.UserProfileService;
 import com.jk.commonlibrary.exception.ResourceNotFoundException;
@@ -26,7 +27,7 @@ import static com.jk.authservice.mapper.UserMapper.mapToUserAddressResponse;
 @RequiredArgsConstructor
 public class UserAddressServiceImpl implements UserAddressService {
 
-    private final UserProfileService userProfileService;
+    private final UserRepository userRepository;
     private final UserAddressRepository userAddressRepository;
 
     @Transactional(readOnly = true)
@@ -43,7 +44,7 @@ public class UserAddressServiceImpl implements UserAddressService {
     @Transactional
     @Override
     public UserAddressResponse createAddress(CreateAddressRequest request, Long userId) {
-        User userEntity = userProfileService.findUserById(userId); // might throw ResourceNotFoundException
+        User userEntity = findUserById(userId); // might throw ResourceNotFoundException
 
         UserAddress userAddress = UserAddress.builder()
                 .user(userEntity) // Orphan removal will handle the association
@@ -70,7 +71,7 @@ public class UserAddressServiceImpl implements UserAddressService {
     public UserAddressResponse updateAddress(UpdateAddressRequest request, Long addressId, Long userId) {
         UserAddress userAddress = findAddressById(addressId);
 
-        User userEntity = userProfileService.findUserById(userId);
+        User userEntity = findUserById(userId);
 
         if(!userAddress.getUser().getId().equals(userEntity.getId())){
             throw new UnauthorizedException("You are not authorized to update this address");
@@ -93,7 +94,7 @@ public class UserAddressServiceImpl implements UserAddressService {
     public void deleteAddress(Long addressId, Long userId) {
         UserAddress userAddress = findAddressById(addressId);
 
-        User userEntity = userProfileService.findUserById(userId);
+        User userEntity = findUserById(userId);
         if(!userAddress.getUser().getId().equals(userEntity.getId())){
             throw new UnauthorizedException("You are not authorized to delete this address");
         }
@@ -105,7 +106,7 @@ public class UserAddressServiceImpl implements UserAddressService {
     @Override
     public UserAddressResponse setDefaultAddress(Long addressId, Long userId) {
         UserAddress userAddress = findAddressById(addressId);
-        User userEntity = userProfileService.findUserById(userId);
+        User userEntity = findUserById(userId);
 
         if(!userAddress.getUser().getId().equals(userEntity.getId())){
             throw new UnauthorizedException("You are not authorized to set this address as default");
@@ -163,6 +164,17 @@ public class UserAddressServiceImpl implements UserAddressService {
 
     private UserAddress findAddressById(Long addressId){
         return userAddressRepository.findById(addressId)
-                .orElseThrow(() -> new ResourceNotFoundException("Address not found with ID: " + addressId));
+                .orElseThrow(() -> {
+                    log.error("[ADDRESS-SERVICE] Address not found with ID: {}", addressId);
+                    return new ResourceNotFoundException("Address not found.");
+                });
+    }
+
+    public User findUserById(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow( () -> {
+                    log.error("[PROFILE-SERVICE] User not found with ID: {}", id);
+                    return new ResourceNotFoundException("User not found");
+                });
     }
 }

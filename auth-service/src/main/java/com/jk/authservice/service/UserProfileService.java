@@ -21,6 +21,4 @@ public interface UserProfileService {
     void logout(Long id, HttpServletResponse response, HttpServletRequest request);
 
     void logoutAll(Long id, HttpServletRequest httpRequest, HttpServletResponse httpResponse);
-
-    User findUserById(Long id);
 }

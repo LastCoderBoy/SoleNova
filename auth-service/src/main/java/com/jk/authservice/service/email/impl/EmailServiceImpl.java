@@ -52,7 +52,7 @@ public class EmailServiceImpl implements EmailService {
     @Value("${app.frontend.base-url}")
     private String frontendBaseUrl;
 
-    private final String appName = "FinIce";
+    private final String appName = "SoleNova";
 
     @Async("taskExecutor")
     public void sendVerificationEmail(User user, EmailToken emailToken) {

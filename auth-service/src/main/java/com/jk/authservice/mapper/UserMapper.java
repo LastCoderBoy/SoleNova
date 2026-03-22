@@ -16,23 +16,20 @@ import static com.jk.commonlibrary.constants.AppConstants.ACCESS_TOKEN_DURATION_
 @Component
 public class UserMapper {
 
-    public static UserSummaryResponse mapToUserSummaryResponse(User user){
+    public static UserSummaryResponse mapToUserSummaryResponse(User user, List<String> userRoles){
         return UserSummaryResponse.builder()
                 .id(user.getId())
                 .email(user.getEmail())
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
                 .fullName(user.getFullName())
-                .roles(user.getRoles().stream()
-                        .map(role -> role.getName().name())
-                        .collect(Collectors.toList())
-                )
+                .roles(userRoles)
                 .accountStatus(user.getAccountStatus())
                 .build();
     }
 
-    public static AuthResponse mapToAuthResponse(User user, String accessToken){
-        UserSummaryResponse userSummaryResponse = mapToUserSummaryResponse(user);
+    public static AuthResponse mapToAuthResponse(User user, List<String> userRoles, String accessToken){
+        UserSummaryResponse userSummaryResponse = mapToUserSummaryResponse(user, userRoles);
 
         return AuthResponse.builder()
                 .accessToken(accessToken)
@@ -63,9 +60,8 @@ public class UserMapper {
                 .collect(Collectors.toList());
     }
 
-    public static UserProfileResponse mapToUserProfileResponse(User user){
-        List<UserAddressResponse> userAddresses = mapToListOfUserAddressResponses(user.getAddresses());
-
+    public static UserProfileResponse mapToUserProfileResponse(User user, List<UserAddressResponse> userAddresses,
+                                                               List<String> userRoles){
         return UserProfileResponse.builder()
                 .id(user.getId())
                 .email(user.getEmail())
@@ -74,10 +70,7 @@ public class UserMapper {
                 .fullName(user.getFullName())
                 .emailVerified(user.getEmailVerified())
                 .accountStatus(user.getAccountStatus())
-                .roles(user.getRoles().stream()
-                        .map(role -> role.getName().name())
-                        .collect(Collectors.toList())
-                )
+                .roles(userRoles)
                 .lastLoginAt(user.getLastLoginAt())
                 .createdAt(user.getCreatedAt())
                 .addresses(userAddresses)

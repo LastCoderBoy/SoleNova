@@ -27,10 +27,6 @@ public class UserAddress {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "address_type", nullable = false, length = 20)
     private AddressType addressType;   // SHIPPING, BILLING
@@ -71,6 +67,11 @@ public class UserAddress {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    // =========== Helper methods ===========
+
+    // =========== RELATIONSHIPS ===========
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
 }

@@ -37,14 +37,13 @@ public class CorsConfig {
                 "X-Requested-With",
                 "Cache-Control",
                 "Origin"
-                // Do NOT include X-User-Id, X-User-Roles, X-Username here
+                // Do NOT include X-User-Id, X-User-Roles here
                 // because those are custom headers added by the gateway after authentication, not sent by the browser.
         ));
         corsConfig.setExposedHeaders(Arrays.asList(
                 AUTHORIZATION_HEADER,
                 USER_ID_HEADER,
-                USER_ROLES_HEADER,
-                USERNAME_HEADER
+                USER_ROLES_HEADER
         ));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
