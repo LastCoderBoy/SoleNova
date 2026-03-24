@@ -1,5 +1,6 @@
 package com.jk.authservice.mapper;
 
+import com.jk.authservice.dto.response.AdminUserResponse;
 import com.jk.authservice.dto.response.UserAddressResponse;
 import com.jk.authservice.dto.response.UserProfileResponse;
 import com.jk.authservice.dto.response.AuthResponse;
@@ -74,6 +75,28 @@ public class UserMapper {
                 .lastLoginAt(user.getLastLoginAt())
                 .createdAt(user.getCreatedAt())
                 .addresses(userAddresses)
+                .build();
+    }
+
+    public static AdminUserResponse mapToAdminUserResponse(User user) {
+        List<String> roles = user.getRoles().stream()
+                .map(role -> role.getName().name())
+                .collect(java.util.stream.Collectors.toList());
+
+        return AdminUserResponse.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .emailVerified(user.getEmailVerified())
+                .accountStatus(user.getAccountStatus())
+                .roles(roles)
+                .failedLoginAttempts(user.getFailedLoginAttempts())
+                .lockedUntil(user.getLockedUntil())
+                .lastLoginAt(user.getLastLoginAt())
+                .lastLoginIp(user.getLastLoginIp())
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
                 .build();
     }
 }

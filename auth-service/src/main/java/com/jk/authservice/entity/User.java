@@ -1,6 +1,7 @@
 package com.jk.authservice.entity;
 
 import com.jk.authservice.enums.AccountStatus;
+import com.jk.authservice.enums.RoleName;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -148,5 +149,10 @@ public class User {
         return (lastName != null)
                 ? firstName + " " + lastName
                 : firstName; // firstName is always present
+    }
+
+    public boolean hasRole(RoleName roleName) {
+        return roles.stream()
+                .anyMatch(role -> role.getName() == roleName);
     }
 }

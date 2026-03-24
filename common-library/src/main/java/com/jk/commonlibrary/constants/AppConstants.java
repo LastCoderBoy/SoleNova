@@ -86,7 +86,7 @@ public final class AppConstants {
     public static final String DEFAULT_PAGE_SIZE = "20";
     public static final int MAX_PAGE_SIZE = 100;
     public static final String DEFAULT_SORT_FIELD = "createdAt";
-    public static final String DEFAULT_SORT_DIRECTION = "DESC";
+    public static final String DEFAULT_SORT_DIRECTION = "desc";
 
     // ========== General Constants ==========
     public static final int EMAIL_VERIFICATION_EXPIRY_MINUTES = 15;
