@@ -8,6 +8,7 @@ import com.jk.authservice.enums.AccountStatus;
 import com.jk.authservice.enums.RoleName;
 import com.jk.authservice.service.AdminService;
 import com.jk.commonlibrary.dto.ApiResponse;
+import com.jk.commonlibrary.dto.PaginatedResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -32,7 +33,7 @@ public class AdminController {
 
     @GetMapping("/users")
     @Operation(summary = "Get all users with pagination and sorting options")
-    public ResponseEntity<ApiResponse<Page<AdminUserResponse>>> getAllUsers(
+    public ResponseEntity<ApiResponse<PaginatedResponse<AdminUserResponse>>> getAllUsers(
             @RequestParam(defaultValue = DEFAULT_PAGE_NUMBER) int page,
             @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) @Max(100) int size,
             @RequestParam(defaultValue = DEFAULT_SORT_FIELD) String sortBy,
@@ -41,7 +42,7 @@ public class AdminController {
             @RequestParam(required = false) String search) {  // search by email/name
 
         log.info("[ADMIN-CONTROLLER] Get all users - page: {}, size: {}", page, size);
-        Page<AdminUserResponse> users = adminService.getAllUsers(page, size, sortBy, sortDir, status, search);
+        PaginatedResponse<AdminUserResponse> users = adminService.getAllUsers(page, size, sortBy, sortDir, status, search);
         return ResponseEntity.ok(ApiResponse.success("Users retrieved successfully", users));
     }
 

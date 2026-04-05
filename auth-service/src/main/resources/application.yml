@@ -32,7 +32,7 @@ spring:
     open-in-view: false
 
   # ========================================
-  # REDIS CONFIGURATION
+  # REDIS CLOUD CONFIGURATION
   # ========================================
   data:
     redis:

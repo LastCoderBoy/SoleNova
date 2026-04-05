@@ -8,11 +8,13 @@ import com.jk.authservice.entity.Role;
 import com.jk.authservice.entity.User;
 import com.jk.authservice.enums.AccountStatus;
 import com.jk.authservice.enums.RoleName;
+import com.jk.authservice.mapper.PaginationMapper;
 import com.jk.authservice.mapper.UserMapper;
 import com.jk.authservice.queryService.RoleQueryService;
 import com.jk.authservice.repository.UserRepository;
 import com.jk.authservice.service.AdminService;
 import com.jk.authservice.service.RefreshTokenService;
+import com.jk.commonlibrary.dto.PaginatedResponse;
 import com.jk.commonlibrary.exception.ResourceNotFoundException;
 import com.jk.commonlibrary.exception.ValidationException;
 import lombok.RequiredArgsConstructor;
@@ -36,8 +38,8 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<AdminUserResponse> getAllUsers(int page, int size, String sortBy, String sortDir,
-                                               AccountStatus status, String search) {
+    public PaginatedResponse<AdminUserResponse> getAllUsers(int page, int size, String sortBy, String sortDir,
+                                                            AccountStatus status, String search) {
         log.info("[ADMIN-SERVICE] Get all users - page: {}, size: {}, status: {}, search: {}",
                 page, size, status, search);
 
@@ -60,7 +62,10 @@ public class AdminServiceImpl implements AdminService {
             users = userRepository.findAll(pageable);
         }
 
-        return users.map(UserMapper::mapToAdminUserResponse);
+        // Map to AdminUserResponse and return PaginatedResponse
+        Page<AdminUserResponse> pagedResponse = users.map(UserMapper::mapToAdminUserResponse);
+
+        return PaginationMapper.fromPage(pagedResponse);
     }
 
     @Override
