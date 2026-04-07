@@ -1,7 +1,3 @@
-# README.md
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 ## Project Overview
 
 ShoesRetail is a full-stack e-commerce platform for shoe retail built as a microservices architecture. The backend uses Spring Boot microservices with Netflix Eureka for service discovery and Spring Cloud Gateway for routing. The frontend is a Next.js application.
@@ -76,14 +72,6 @@ cd frontend && npm install && npm run build
 ## Configuration
 
 All services use environment variables configured in `.env` file at project root. The `spring-dotenv` dependency loads these at startup.
-
-Required environment variables (see `.env`):
-- Database: `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `AUTH_DB_NAME`
-- Redis: `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`
-- JWT: `JWT_SECRET`
-- Eureka: `EUREKA_URL`
-- Email: `MAIL_USERNAME`, `MAIL_PASSWORD`, `EMAIL_VERIFICATION_URL`
-- Services: `AUTH_SERVICE_PORT`, `GATEWAY_PORT`
 
 ## API Gateway Routing
 
