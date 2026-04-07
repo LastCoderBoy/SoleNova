@@ -175,7 +175,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             // isEnabled() returned false — email not verified OR status not ACTIVE
             log.warn("[AUTH-SERVICE] Disabled account login attempt: {}", loginRequest.getEmail());
             throw new AccountNotVerifiedException(
-                    "Account is not active. Please verify your email first.");
+                    "Account is not isActive. Please verify your email first.");
 
         } catch (LockedException e) {
             // isAccountNonLocked() returned false
@@ -220,7 +220,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         User user = storedToken.getUser();
         if (user.getAccountStatus() != AccountStatus.ACTIVE) {
-            throw new UnauthorizedException("Account is no longer active.");
+            throw new UnauthorizedException("Account is no longer isActive.");
         }
 
         // Generate new Refresh Token

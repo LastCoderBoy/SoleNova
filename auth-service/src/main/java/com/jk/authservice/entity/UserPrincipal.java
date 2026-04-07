@@ -85,7 +85,7 @@ public class UserPrincipal implements UserDetails {
                 .id(userId)
                 .email(email)
                 .password(null)  // Not in JWT
-                .accountStatus(AccountStatus.ACTIVE)  // Assume active if JWT is valid
+                .accountStatus(AccountStatus.ACTIVE)  // Assume isActive if JWT is valid
                 .emailVerified(true)  // Assume verified if JWT is valid
                 .authorities(authorities)
                 .build();

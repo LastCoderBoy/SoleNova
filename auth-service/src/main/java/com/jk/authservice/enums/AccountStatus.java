@@ -4,7 +4,7 @@ import lombok.Getter;
 
 @Getter
 public enum AccountStatus {
-    ACTIVE ("Normal active account"),
+    ACTIVE ("Normal isActive account"),
     INACTIVE ("Temporarily inactive"),
     SUSPENDED ("Suspended due to suspicious activity"),
     CLOSED("Permanently closed"),
