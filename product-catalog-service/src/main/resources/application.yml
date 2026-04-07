@@ -74,7 +74,7 @@ aws:
     secret-key: ${AWS_SECRET_ACCESS_KEY}
     bucket-name: ${AWS_S3_BUCKET}
     region: ${AWS_REGION}
-    base-path: products/  # Base path for product images
+    base-path: products  # Base path for product images
 
 
 # ========================================
