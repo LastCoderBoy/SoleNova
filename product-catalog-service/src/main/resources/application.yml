@@ -1,0 +1,181 @@
+# ========================================
+# PRODUCT CATALOG SERVICE CONFIGURATION
+# ========================================
+spring:
+  application:
+    name: product-catalog-service
+
+  # ========================================
+  # DATABASE CONFIGURATION
+  # ========================================
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${PRODUCT_DB_NAME}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      pool-name: ProductCatalogHikariPool
+
+  jpa:
+    hibernate:
+      ddl-auto: update  # Change to 'validate' in production
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        use_sql_comments: false
+        # Enable batch processing for performance
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+    open-in-view: false
+
+  # ========================================
+  # REDIS CONFIGURATION
+  # ========================================
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD:}
+      database: 1     # Use different database than auth-service (which uses 0)
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 2
+          max-wait: 5000ms
+        shutdown-timeout: 100ms
+
+  # ========================================
+  # FILE UPLOAD CONFIGURATION
+  # ========================================
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB      # Max size for single file
+      max-request-size: 50MB   # Max size for entire request (multiple files)
+      file-size-threshold: 2KB
+
+# ========================================
+# AWS S3 CONFIGURATION
+# ========================================
+aws:
+  s3:
+    access-key: ${AWS_ACCESS_KEY_ID}
+    secret-key: ${AWS_SECRET_ACCESS_KEY}
+    bucket-name: ${AWS_S3_BUCKET}
+    region: ${AWS_REGION}
+    base-path: products/  # Base path for product images
+
+
+# ========================================
+# SERVER CONFIGURATION
+# ========================================
+server:
+  port: ${PRODUCT_CATALOG_SERVICE_PORT}
+  servlet:
+    context-path: /
+
+
+# ========================================
+# EUREKA CLIENT CONFIGURATION
+# ========================================
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL}
+    fetch-registry: true
+    register-with-eureka: true
+    registry-fetch-interval-seconds: 30
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 30
+    lease-expiration-duration-in-seconds: 90
+    instance-id: ${spring.application.name}:${server.port}
+    metadata-map:
+      zone: primary
+      version: 1.0.0
+
+
+# ========================================
+# SPRINGDOC / SWAGGER CONFIGURATION
+# ========================================
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    tags-sorter: alpha
+    operations-sorter: method
+    display-request-duration: true
+    doc-expansion: none
+  show-actuator: false
+  paths-to-match: /api/v1/products/**
+  packages-to-scan: com.jk.productcatalog.controller
+
+
+# ========================================
+# ACTUATOR CONFIGURATION
+# ========================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  health:
+    livenessState:
+      enabled: true
+    readinessState:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+
+# ========================================
+# APPLICATION SPECIFIC CONFIGURATION
+# ========================================
+app:
+  product:
+    # Image upload settings
+    image:
+      allowed-extensions: jpg,jpeg,png,webp
+      max-size-mb: 10
+      max-per-product: 10
+      max-per-variant: 5
+
+
+# ========================================
+# LOGGING CONFIGURATION
+# ========================================
+logging:
+  level:
+    root: INFO
+    com.jk.productcatalog: DEBUG
+    org.springframework.cloud.netflix.eureka: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.springframework.cache: DEBUG
+    io.awspring.cloud.s3: DEBUG
+  file:
+    name: logs/product-catalog-service.log
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
