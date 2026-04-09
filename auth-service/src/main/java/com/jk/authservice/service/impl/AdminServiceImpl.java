@@ -3,6 +3,7 @@ package com.jk.authservice.service.impl;
 import com.jk.authservice.config.redis.RedisService;
 import com.jk.authservice.dto.request.AssignRoleRequest;
 import com.jk.authservice.dto.request.UpdateAccountStatusRequest;
+import com.jk.authservice.dto.request.UserFilterRequest;
 import com.jk.authservice.dto.response.AdminUserResponse;
 import com.jk.authservice.entity.Role;
 import com.jk.authservice.entity.User;
@@ -38,8 +39,14 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     @Transactional(readOnly = true)
-    public PaginatedResponse<AdminUserResponse> getAllUsers(int page, int size, String sortBy, String sortDir,
-                                                            AccountStatus status, String search) {
+    public PaginatedResponse<AdminUserResponse> getAllUsers(UserFilterRequest filterRequest) {
+        int page = filterRequest.getPage();
+        int size = filterRequest.getSize();
+        String sortBy = filterRequest.getSortBy();
+        String sortDir = filterRequest.getSortDirection();
+        AccountStatus status = filterRequest.getStatus();
+        String search = filterRequest.getSearch();
+
         log.info("[ADMIN-SERVICE] Get all users - page: {}, size: {}, status: {}, search: {}",
                 page, size, status, search);
 

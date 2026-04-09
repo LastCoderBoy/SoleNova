@@ -81,12 +81,15 @@ public final class AppConstants {
     public static final long CACHE_EMAIL_TOKEN_TTL = 1440;     // 24 hours
     public static final long CACHE_OTP_TTL = 5;                // 5 minutes
 
-    // ========== Pagination ==========
-    public static final String DEFAULT_PAGE_NUMBER = "0";
-    public static final String DEFAULT_PAGE_SIZE = "20";
+    // ========== General Pagination ==========
+    public static final int DEFAULT_PAGE_NUMBER = 0;
+    public static final int DEFAULT_PAGE_SIZE = 20;
     public static final int MAX_PAGE_SIZE = 100;
-    public static final String DEFAULT_SORT_FIELD = "createdAt";
+    public static final String DEFAULT_SORT_BY = "createdAt";
     public static final String DEFAULT_SORT_DIRECTION = "desc";
+
+    // ========== Product Pagination ==========
+    public static final int DEFAULT_PRODUCT_SIZE = 30;
 
     // ========== General Constants ==========
     public static final int EMAIL_VERIFICATION_EXPIRY_MINUTES = 15;

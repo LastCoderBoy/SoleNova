@@ -7,6 +7,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -56,8 +57,21 @@ public class Product {
     @Column(nullable = false, length = 10)
     private Gender gender;                 // MALE, FEMALE, UNISEX
 
+    @Column(name = "stock_quantity", nullable = false)
+    @Builder.Default
+    private Integer totalStockQuantity = 0;
+
+    // TODO: Add totalStockQuantity field. While the stockQuantity in the ProductVariants will be variant specific quantity.
+
+    // ==================== Pricing ====================
     @Column(name = "cost_price", precision = 10, scale = 2)
     private BigDecimal costPrice;  // Wholesale/supplier cost (internal, not exposed to customers)
+
+    @Column(name = "retail_price", nullable = false, precision = 10, scale = 2)
+    private BigDecimal retailPrice;  // Regular customer price
+
+    @Column(name = "sale_price", precision = 10, scale = 2)
+    private BigDecimal salePrice;          // Discounted price (nullable)
 
     @Column(nullable = false)
     @Builder.Default
@@ -110,6 +124,37 @@ public class Product {
 
     // =========== HELPER METHODS ===========
 
+
+    public boolean isOnSale() {
+        return salePrice != null
+                && salePrice.compareTo(BigDecimal.ZERO) > 0
+                && salePrice.compareTo(retailPrice) < 0;
+    }
+
+    public BigDecimal getEffectivePrice() {
+        return isOnSale() ? salePrice : retailPrice;
+    }
+
+    public BigDecimal getProfitMargin() {
+        if (getCostPrice() == null) return BigDecimal.ZERO;
+        BigDecimal price = getEffectivePrice();
+        return price.subtract(getCostPrice());
+    }
+
+    public BigDecimal getProfitPercentage() {
+        if (getCostPrice() == null || getCostPrice().equals(BigDecimal.ZERO)) {
+            return BigDecimal.ZERO;
+        }
+        return getProfitMargin()
+                .divide(getCostPrice(), 4, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100));
+    }
+
+    public boolean isInStock() {
+        return isActive && totalStockQuantity > 0;
+    }
+
+
     public void addVariant(ProductVariant variant) {
         if (variant != null) {
             variants.add(variant);
@@ -158,11 +203,6 @@ public class Product {
 
     public boolean hasImages() {
         return images != null && !images.isEmpty();
-    }
-
-    public boolean isInStock() {
-        return variants.stream()
-                .anyMatch(variant -> variant.getIsActive() && variant.getStockQuantity() > 0);
     }
 
     public ProductImage getPrimaryImage() {

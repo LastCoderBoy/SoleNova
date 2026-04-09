@@ -77,23 +77,4 @@ public class ProductImage {
         return variant != null;
     }
 
-    /**
-     * Extract file extension from S3 key
-     */
-    public String getFileExtension() {
-        if (s3Key != null && s3Key.contains(".")) {
-            return s3Key.substring(s3Key.lastIndexOf(".") + 1).toLowerCase();
-        }
-        return null;
-    }
-
-    /**
-     * Extract filename from S3 key
-     */
-    public String getFileName() {
-        if (s3Key != null && s3Key.contains("/")) {
-            return s3Key.substring(s3Key.lastIndexOf("/") + 1);
-        }
-        return s3Key;
-    }
 }

@@ -2,6 +2,7 @@ package com.jk.authservice.controller;
 
 import com.jk.authservice.dto.request.AssignRoleRequest;
 import com.jk.authservice.dto.request.UpdateAccountStatusRequest;
+import com.jk.authservice.dto.request.UserFilterRequest;
 import com.jk.authservice.dto.response.AdminUserResponse;
 import com.jk.authservice.entity.UserPrincipal;
 import com.jk.authservice.enums.AccountStatus;
@@ -15,7 +16,6 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -34,15 +34,10 @@ public class AdminController {
     @GetMapping("/users")
     @Operation(summary = "Get all users with pagination and sorting options")
     public ResponseEntity<ApiResponse<PaginatedResponse<AdminUserResponse>>> getAllUsers(
-            @RequestParam(defaultValue = DEFAULT_PAGE_NUMBER) int page,
-            @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) @Max(100) int size,
-            @RequestParam(defaultValue = DEFAULT_SORT_FIELD) String sortBy,
-            @RequestParam(defaultValue = DEFAULT_SORT_DIRECTION) String sortDir,
-            @RequestParam(required = false) AccountStatus status,
-            @RequestParam(required = false) String search) {  // search by email/name
+            @ModelAttribute @Valid UserFilterRequest filterRequest) {
 
-        log.info("[ADMIN-CONTROLLER] Get all users - page: {}, size: {}", page, size);
-        PaginatedResponse<AdminUserResponse> users = adminService.getAllUsers(page, size, sortBy, sortDir, status, search);
+        log.info("[ADMIN-CONTROLLER] Get all users - page: {}, size: {}", filterRequest.getPage(), filterRequest.getSize());
+        PaginatedResponse<AdminUserResponse> users = adminService.getAllUsers(filterRequest);
         return ResponseEntity.ok(ApiResponse.success("Users retrieved successfully", users));
     }
 

@@ -14,7 +14,6 @@ import java.util.stream.Collectors;
 
 import static com.jk.commonlibrary.constants.AppConstants.ACCESS_TOKEN_DURATION_MS;
 
-@Component
 public class UserMapper {
 
     public static UserSummaryResponse mapToUserSummaryResponse(User user, List<String> userRoles){

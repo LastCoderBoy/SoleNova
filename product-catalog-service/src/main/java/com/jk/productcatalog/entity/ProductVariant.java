@@ -57,15 +57,6 @@ public class ProductVariant {
     private String colorHex;             // "#000000" — for color swatch UI
 
 
-    // ==================== Pricing ====================
-
-    @Column(name = "retail_price", nullable = false, precision = 10, scale = 2)
-    private BigDecimal retailPrice;  // Regular customer price
-
-    @Column(name = "sale_price", precision = 10, scale = 2)
-    private BigDecimal salePrice;          // Discounted price (nullable)
-
-
     // ==================== Inventory ====================
 
     @Column(name = "stock_quantity", nullable = false)
@@ -157,32 +148,6 @@ public class ProductVariant {
     // Called when order is cancelled — releases reserved stock
     public void releaseReservation(int quantity) {
         this.reservedQuantity = Math.max(0, reservedQuantity - quantity);
-    }
-
-
-    public boolean isOnSale() {
-        return salePrice != null
-                && salePrice.compareTo(BigDecimal.ZERO) > 0
-                && salePrice.compareTo(retailPrice) < 0;
-    }
-
-    public BigDecimal getEffectivePrice() {
-        return isOnSale() ? salePrice : retailPrice;
-    }
-
-    public BigDecimal getProfitMargin() {
-        if (product.getCostPrice() == null) return BigDecimal.ZERO;
-        BigDecimal price = getEffectivePrice();
-        return price.subtract(product.getCostPrice());
-    }
-
-    public BigDecimal getProfitPercentage() {
-        if (product.getCostPrice() == null || product.getCostPrice().equals(BigDecimal.ZERO)) {
-            return BigDecimal.ZERO;
-        }
-        return getProfitMargin()
-                .divide(product.getCostPrice(), 4, RoundingMode.HALF_UP)
-                .multiply(BigDecimal.valueOf(100));
     }
 
     public void incrementStock(int quantity) {
